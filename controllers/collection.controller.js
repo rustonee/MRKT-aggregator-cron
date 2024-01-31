@@ -168,7 +168,7 @@ const fetchActivities = async (address) => {
   try {
     const api_url = process.env.API_URL;
     const result = await axios.get(
-      `${api_url}/marketplace/activities?chain_id=pacific-1&nft_address=${address}&page=1&page_size=50`
+      `${api_url}/marketplace/activities?chain_id=pacific-1&nft_address=${address}&page=1&page_size=300`
     );
     return result.data.activities;
   } catch (err) {
@@ -210,7 +210,9 @@ const getFloor_24hr = async (address, defaultFloor) => {
       const txActivities = activities.filter((activity) => {
         const eventType = activity.event_type;
         const txTime = activity.ts;
-        const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
+        const oneHourAgo = new Date(
+          currentTime.getTime() - 60 * 60 * 24 * 1000
+        );
 
         if (eventType !== "list_buy_now" && new Date(txTime) >= oneHourAgo) {
           return true;

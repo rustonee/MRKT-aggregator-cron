@@ -14,8 +14,8 @@ mongoose
     console.error("Error connecting to MongoDB:", error);
   });
 
-cron.schedule("*/20 * * * *", async function () {
-  console.log("running a task every 20 minutes");
+cron.schedule("*/30 * * * *", async function () {
+  console.log("running a task every 30 minutes");
   await collectionController.fetchCollections();
   await collectionController.updateCollections();
 });
