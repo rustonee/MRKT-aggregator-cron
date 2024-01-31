@@ -7,6 +7,7 @@ const collectionSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  slug: { type: String, required: true, index: true },
   chain_id: {
     type: String,
     required: true,
@@ -50,12 +51,31 @@ const collectionSchema = new mongoose.Schema({
   version: {
     type: String,
   },
-  _count: {},
+  public: {
+    type: Boolean,
+  },
+  onboard_tx_id: {
+    type: Number,
+  },
+  creator_info: {},
+  auction_count: {
+    type: Number,
+  },
   owners: {
     type: Number,
   },
-  floor: [],
-  volume: {},
+  floor: {
+    type: Number,
+  },
+  floor_24hr: {
+    type: Number,
+  },
+  volume: {
+    type: Number,
+  },
+  volume_24hr: {
+    type: Number,
+  },
 });
 
 // Create the Collection model
