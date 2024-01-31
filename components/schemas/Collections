@@ -1,0 +1,15 @@
+{
+  components: {
+    schemas: {
+      Collections: {
+        type: "object";
+        properties: {
+          contract_address: {
+            type: "string";
+            example: "sei15w6sty6cjjraxanrxxx0y09adwjtywhkcmydh7np25zezg9m5mwsfduktd";
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "mp-api",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "start": "node ./app",
+    "dev": "nodemon ./app"
+  },
+  "dependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.32.2",
+    "@cosmjs/stargate": "^0.32.2",
+    "axios": "^1.2.3",
+    "dotenv": "^16.0.3",
+    "mongoose": "^8.1.0",
+    "node-cron": "^3.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
