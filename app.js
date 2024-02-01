@@ -14,8 +14,45 @@ mongoose
     console.error("Error connecting to MongoDB:", error);
   });
 
-cron.schedule("*/30 * * * *", async function () {
-  console.log("running a task every 30 minutes");
-  await collectionController.fetchCollections();
-  await collectionController.updateCollections();
+let isFetchingJobRunning = false;
+let isUpdateJobRunning = false;
+
+// Fetching job running every 1 minute
+const fetchingJob = cron.schedule("*/3 * * * * *", async function () {
+  if (isFetchingJobRunning) {
+    return;
+  }
+
+  isFetchingJobRunning = true;
+  try {
+    await collectionController.fetchCollections();
+  } finally {
+    isFetchingJobRunning = false;
+  }
+});
+
+// Updating job running every 30 minutes
+const updateJjob = cron.schedule("*/30 * * * *", async function () {
+  if (isUpdateJobRunning) {
+    return;
+  }
+
+  isUpdateJobRunning = true;
+  try {
+    await collectionController.updateCollections();
+  } finally {
+    isUpdateJobRunning = false;
+  }
+});
+
+// Listen for the SIGINT event to stop the cron job when the app is terminated
+process.on("SIGINT", function () {
+  if (fetchingJob) {
+    fetchingJob.stop();
+  }
+  if (updateJjob) {
+    updateJjob.stop();
+  }
+
+  process.exit();
 });

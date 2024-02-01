@@ -6,7 +6,9 @@ const Collection = require("../models/collection.model");
 const Nft = require("../models/nft.model");
 
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // in milliseconds
+const RETRY_DELAY = 1000;
+
+let floors_24hr = [];
 
 exports.fetchCollections = async () => {
   try {
@@ -33,12 +35,8 @@ exports.fetchCollections = async () => {
         if (!collection) {
           const collectionDetails = await fetchCollection(activity.nft.address);
 
-          // const floor_24hr = await getFloor_24hr(
-          //   collectionDetails.contract_address,
-          //   collectionDetails.floor
-          // );
           if (collectionDetails) {
-            collectionDetails.floor_24hr = collectionDetails.floor; //floor_24hr;
+            collectionDetails.floor_24hr = collectionDetails.floor;
 
             if (collectionDetails.pfp === "") {
               const pfp = await getPfp(collectionDetails.slug, address);
@@ -47,15 +45,13 @@ exports.fetchCollections = async () => {
 
             newCollections.push(collectionDetails);
           }
-
-          await delay(300);
         }
       }
     }
 
     // console.log("new collections:", newCollections.length);
 
-    if (newCollections && newCollections.length > 0) {
+    if (newCollections.length > 0) {
       await saveCollections(newCollections);
     }
   } catch (err) {
@@ -71,38 +67,62 @@ exports.updateCollections = async () => {
 
     for (let idx = 0; idx < collections.length; idx++) {
       const collection = collections[idx];
-
       const address = collection.contract_address;
-      const collectionDetails = await fetchCollection(address);
 
-      if (collectionDetails) {
-        const floor_24hr = await getFloor_24hr(
-          collectionDetails.contract_address,
-          collectionDetails.floor
-        );
-
-        // console.log("floor_24hr:", collectionDetails.floor, floor_24hr);
-
-        collectionDetails.floor_24hr = floor_24hr;
-
-        if (collection.pfp === "") {
-          const pfp = await getPfp(collectionDetails.slug, address);
-          collectionDetails.pfp = pfp;
-        } else {
-          collectionDetails.pfp = collection.pfp;
-        }
-
-        newCollections.push(collectionDetails);
+      // Check if any user has the name 'Bob'
+      const hasFloor = floors_24hr.some((floor) => floor.address === address);
+      if (!hasFloor) {
+        floors_24hr.push({
+          address,
+          floors: new Array(50).fill(null),
+        });
       }
 
-      await delay(300);
+      const collectionDetails = await fetchCollectionDetails(address);
+      if (collectionDetails) {
+        const currFloor = collectionDetails.floor;
 
-      console.log(idx + " : " + collectionDetails.contract_address);
+        // Set floor_24hr
+        const floor_24hr = floors_24hr.find(
+          (floor_24hr) => floor_24hr.address === address
+        );
+
+        floor_24hr.floors.shift();
+        floor_24hr.floors.push(currFloor);
+
+        // console.log(floor_24hr);
+        // console.log("floor_24hr:", collectionDetails.floor_24hr, currFloor);
+
+        if (collection.pfp === "") {
+          collection.pfp = await getPfp(collectionDetails.slug, address);
+        }
+
+        collection.supply = collectionDetails.supply;
+        collection.owners = collectionDetails.owners;
+        collection.auction_count = collectionDetails.auction_count;
+        collection.floor = collectionDetails.floor;
+        collection.floor_24hr = floor_24hr.floors[0]
+          ? floor_24hr.floors[0]
+          : collection.floor_24hr;
+        collection.volume = collectionDetails.volume;
+        collection.volume_24hr = collectionDetails.volume_24hr;
+        collection.num_sales_24hr = collectionDetails.num_sales_24hr;
+
+        newCollections.push(collection);
+
+        // console.log(idx + " : " + collection.contract_address);
+      }
+
+      await delay(100);
+
+      break;
     }
 
-    await saveCollections(newCollections);
+    if (newCollections.length > 0) {
+      await saveCollections(newCollections);
+    }
 
-    console.log("Collection stored Successfully.");
+    // console.log("Collection stored Successfully.");
   } catch (err) {
     console.log("Some error occurred while saving the Collections.", err);
   }
@@ -155,10 +175,22 @@ const getMarketActivitiesFromContract = async () => {
 const fetchCollection = async (address) => {
   try {
     const api_url = process.env.API_URL;
-    const result = await axios.get(
+    const { data } = await axios.get(
       `${api_url}/nfts/${address}?get_tokens=false`
     );
-    return result.data;
+
+    return data;
+  } catch (err) {}
+
+  return null;
+};
+
+const fetchCollectionDetails = async (address) => {
+  try {
+    const api_url = process.env.BASE_API_URL;
+    const { data } = await axios.get(`${api_url}/v2/nfts/${address}/details`);
+
+    return data;
   } catch (err) {}
 
   return null;
@@ -167,10 +199,10 @@ const fetchCollection = async (address) => {
 const fetchActivities = async (address) => {
   try {
     const api_url = process.env.API_URL;
-    const result = await axios.get(
+    const { data } = await axios.get(
       `${api_url}/marketplace/activities?chain_id=pacific-1&nft_address=${address}&page=1&page_size=300`
     );
-    return result.data.activities;
+    return data.activities;
   } catch (err) {
     console.log("error", err);
   }
@@ -204,9 +236,7 @@ const getFloor_24hr = async (address, defaultFloor) => {
   try {
     const activities = await fetchActivities(address);
     if (activities) {
-      // console.log("activities", activities.length);
       const currentTime = await getBlockTime();
-      // console.log("currentTime", currentTime);
       const txActivities = activities.filter((activity) => {
         const eventType = activity.event_type;
         const txTime = activity.ts;
@@ -220,8 +250,6 @@ const getFloor_24hr = async (address, defaultFloor) => {
 
         return false;
       });
-
-      // console.log("txActivities", txActivities.length);
 
       if (txActivities) {
         const floor = Math.min(
@@ -263,12 +291,9 @@ const queryContract = async (contractAddress, queryMsg, retryCount = 0) => {
   } catch (err) {
     if (retryCount < MAX_RETRIES) {
       const delayTime = Math.pow(2, retryCount) * RETRY_DELAY;
-      console.log(`Retrying after ${delayTime} ms`);
       await delay(delayTime);
       return queryContract(contractAddress, queryMsg, retryCount + 1);
     } else {
-      // throw new Error("Max retry attempts reached");
-      console.log("error contract fetching", queryMsg);
       return null;
     }
   }
