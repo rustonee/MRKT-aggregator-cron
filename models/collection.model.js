@@ -79,6 +79,9 @@ const collectionSchema = new mongoose.Schema({
   num_sales_24hr: {
     type: Number,
   },
+  royalty: {
+    type: Number,
+  },
 });
 
 // Create the Collection model
