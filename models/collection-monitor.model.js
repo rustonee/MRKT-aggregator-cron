@@ -10,6 +10,12 @@ const collectionMonitorSchema = new mongoose.Schema({
   floor: {
     type: Number
   },
+  volume_24hr: {
+    type: Number
+  },
+  sale_count: {
+    type: Number
+  },
   date: {
     required: true,
     type: Date

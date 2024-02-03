@@ -1,7 +1,10 @@
 const CollectionMonitor = require("../models/collection-monitor.model");
 const Collection = require("../models/collection.model");
 
-const { fetchCollection } = require("./services/fetch-collection");
+const {
+  fetchCollection,
+  fetchCollectionSaleCount
+} = require("./services/fetch-collection");
 
 exports.saveCollectionMonitors = async () => {
   try {
@@ -12,10 +15,16 @@ exports.saveCollectionMonitors = async () => {
         collection.contract_address
       );
 
+      const saleCount = await fetchCollectionSaleCount(
+        collection.contract_address
+      );
+
       await CollectionMonitor.create({
         contract_address: collection.contract_address,
         date: new Date(),
-        floor: fetchedCollection.floor
+        floor: fetchedCollection.floor,
+        volume_24hr: fetchedCollection.volume_24hr,
+        sale_count: saleCount
       });
     }
 
