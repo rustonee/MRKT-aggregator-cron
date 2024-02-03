@@ -15,8 +15,6 @@ exports.fetchCollections = async () => {
     const newCollections = [];
     const activities = await getMarketActivitiesFromContract();
 
-    // console.log("activities:", activities.length);
-
     if (activities && activities.length > 0) {
       for (const activity of activities) {
         // Check if the new collection already exists
@@ -48,8 +46,6 @@ exports.fetchCollections = async () => {
         }
       }
     }
-
-    // console.log("new collections:", newCollections.length);
 
     if (newCollections.length > 0) {
       await saveCollections(newCollections);
@@ -90,9 +86,6 @@ exports.updateCollections = async () => {
         floor_24hr.floors.shift();
         floor_24hr.floors.push(currFloor);
 
-        // console.log(floor_24hr);
-        // console.log("floor_24hr:", collectionDetails.floor_24hr, currFloor);
-
         if (collection.pfp === "") {
           collection.pfp = await getPfp(collectionDetails.slug, address);
         }
@@ -107,10 +100,9 @@ exports.updateCollections = async () => {
         collection.volume = collectionDetails.volume;
         collection.volume_24hr = collectionDetails.volume_24hr;
         collection.num_sales_24hr = collectionDetails.num_sales_24hr;
+        collection.royalty = await getColloectionRoyaltyFromContract(address);
 
         newCollections.push(collection);
-
-        // console.log(idx + " : " + collection.contract_address);
       }
 
       await delay(100);
@@ -121,8 +113,6 @@ exports.updateCollections = async () => {
     if (newCollections.length > 0) {
       await saveCollections(newCollections);
     }
-
-    // console.log("Collection stored Successfully.");
   } catch (err) {
     console.log("Some error occurred while saving the Collections.", err);
   }
@@ -168,6 +158,28 @@ const getMarketActivitiesFromContract = async () => {
     return activities;
   } catch (err) {
     console.log(err);
+    return null;
+  }
+};
+
+const getColloectionRoyaltyFromContract = async (address) => {
+  try {
+    const queryMsg = `{
+        "royalties": {
+          "nft": {
+            "address": "${address}"
+          }
+        }
+      }`;
+
+    const { value } = await queryContract(
+      process.env.SEI_CONTROLLER_ADDRESS,
+      queryMsg
+    );
+
+    return value;
+  } catch (err) {
+    console.log(err.message);
     return null;
   }
 };
@@ -289,13 +301,14 @@ const queryContract = async (contractAddress, queryMsg, retryCount = 0) => {
 
     return queryResult;
   } catch (err) {
-    if (retryCount < MAX_RETRIES) {
-      const delayTime = Math.pow(2, retryCount) * RETRY_DELAY;
-      await delay(delayTime);
-      return queryContract(contractAddress, queryMsg, retryCount + 1);
-    } else {
-      return null;
-    }
+    // if (retryCount < MAX_RETRIES) {
+    //   const delayTime = Math.pow(2, retryCount) * RETRY_DELAY;
+    //   await delay(delayTime);
+    //   return queryContract(contractAddress, queryMsg, retryCount + 1);
+    // } else {
+    //   return null;
+    // }
+    return null;
   }
 };
 

@@ -20,8 +20,8 @@ let isUpdateJobRunning = false;
 let isSaveCollectionMonitorsJobRunning = false;
 let isDeleteCollectionJobRunning = false;
 
-// Fetching job running every 1 minute
-const fetchingJob = cron.schedule("*/1 * * * *", async function () {
+// Fetching job running every 5 minutes
+const fetchingJob = cron.schedule("*/5 * * * *", async function () {
   if (isFetchingJobRunning) {
     return;
   }
