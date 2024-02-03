@@ -21,7 +21,7 @@ let isSaveCollectionMonitorsJobRunning = false;
 let isDeleteCollectionJobRunning = false;
 
 // Fetching job running every 1 minute
-const fetchingJob = cron.schedule("*/3 * * * * *", async function () {
+const fetchingJob = cron.schedule("*/1 * * * *", async function () {
   if (isFetchingJobRunning) {
     return;
   }
@@ -48,19 +48,22 @@ const updateJjob = cron.schedule("*/30 * * * *", async function () {
   }
 });
 
-// Run task every 30 minutes
-const saveColltionMonitorsJob = cron.schedule("* * * * *", async function () {
-  if (isSaveCollectionMonitorsJobRunning) {
-    return;
-  }
+// Run task every 5 minutes
+const saveColltionMonitorsJob = cron.schedule(
+  "0 */5 * * * *",
+  async function () {
+    if (isSaveCollectionMonitorsJobRunning) {
+      return;
+    }
 
-  isSaveCollectionMonitorsJobRunning = true;
-  try {
-    await collectionMonitorController.saveCollectionMonitors();
-  } finally {
-    isSaveCollectionMonitorsJobRunning = false;
+    isSaveCollectionMonitorsJobRunning = true;
+    try {
+      await collectionMonitorController.saveCollectionMonitors();
+    } finally {
+      isSaveCollectionMonitorsJobRunning = false;
+    }
   }
-});
+);
 
 // Run task every day
 const deleteCollectionMonitorJobs = cron.schedule(
