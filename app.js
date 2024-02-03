@@ -3,6 +3,7 @@ const { dbConfig } = require("./config/db.config");
 
 const cron = require("node-cron");
 const collectionController = require("./controllers/collection.controller");
+const collectionMonitorController = require("./controllers/collection-monitor.controller");
 
 // Connect to MongoDB
 mongoose
@@ -16,6 +17,8 @@ mongoose
 
 let isFetchingJobRunning = false;
 let isUpdateJobRunning = false;
+let isSaveCollectionMonitorsJobRunning = false;
+let isDeleteCollectionJobRunning = false;
 
 // Fetching job running every 5 minutes
 const fetchingJob = cron.schedule("*/5 * * * *", async function () {
@@ -45,6 +48,40 @@ const updateJjob = cron.schedule("*/30 * * * *", async function () {
   }
 });
 
+// Run task every 5 minutes
+const saveColltionMonitorsJob = cron.schedule(
+  "0 */5 * * * *",
+  async function () {
+    if (isSaveCollectionMonitorsJobRunning) {
+      return;
+    }
+
+    isSaveCollectionMonitorsJobRunning = true;
+    try {
+      await collectionMonitorController.saveCollectionMonitors();
+    } finally {
+      isSaveCollectionMonitorsJobRunning = false;
+    }
+  }
+);
+
+// Run task every day
+const deleteCollectionMonitorJobs = cron.schedule(
+  "0 0 * * *",
+  async function () {
+    if (isDeleteCollectionJobRunning) {
+      return;
+    }
+
+    isDeleteCollectionJobRunning = true;
+    try {
+      await collectionMonitorController.deleteCollectionMonitors();
+    } finally {
+      isDeleteCollectionJobRunning = false;
+    }
+  }
+);
+
 // Listen for the SIGINT event to stop the cron job when the app is terminated
 process.on("SIGINT", function () {
   if (fetchingJob) {
@@ -52,6 +89,14 @@ process.on("SIGINT", function () {
   }
   if (updateJjob) {
     updateJjob.stop();
+  }
+
+  if (saveColltionMonitorsJob) {
+    saveColltionMonitorsJob.stop();
+  }
+
+  if (deleteCollectionMonitorJobs) {
+    deleteCollectionMonitorJobs.stop();
   }
 
   process.exit();
