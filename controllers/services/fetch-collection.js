@@ -12,3 +12,14 @@ exports.fetchCollection = async (address) => {
 
   return null;
 };
+
+exports.fetchCollectionSaleCount = async (address) => {
+  const api_url = process.env.BASE_API_URL;
+  try {
+    const { data } = await axios.get(`${api_url}/v2/nfts/${address}/details`);
+
+    return data.num_sales_24hr;
+  } catch {
+    return undefined;
+  }
+};
