@@ -50,7 +50,7 @@ const updateJjob = cron.schedule("*/30 * * * *", async function () {
 
 // Run task every 5 minutes
 const saveColltionMonitorsJob = cron.schedule(
-  "0 */5 * * * *",
+  "*/5 * * * *",
   async function () {
     if (isSaveCollectionMonitorsJobRunning) {
       return;
