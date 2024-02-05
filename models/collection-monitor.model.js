@@ -13,6 +13,9 @@ const collectionMonitorSchema = new mongoose.Schema({
   volume_24hr: {
     type: Number
   },
+  volume: {
+    type: Number
+  },
   sale_count: {
     type: Number
   },

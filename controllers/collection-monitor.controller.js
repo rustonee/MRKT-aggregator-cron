@@ -22,6 +22,7 @@ exports.saveCollectionMonitors = async () => {
       await CollectionMonitor.create({
         contract_address: collection.contract_address,
         date: new Date(),
+        volume: fetchedCollection.volume,
         floor: fetchedCollection.floor,
         volume_24hr: fetchedCollection.volume_24hr,
         sale_count: saleCount
