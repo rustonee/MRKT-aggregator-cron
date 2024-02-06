@@ -3,7 +3,7 @@ const Collection = require("../models/collection.model");
 
 const {
   fetchCollection,
-  fetchCollectionSaleCount
+  fetchCollectionSaleCount,
 } = require("./services/fetch-collection");
 
 exports.saveCollectionMonitors = async () => {
@@ -15,18 +15,24 @@ exports.saveCollectionMonitors = async () => {
         collection.contract_address
       );
 
+      await delay(300);
+
       const saleCount = await fetchCollectionSaleCount(
         collection.contract_address
       );
 
-      await CollectionMonitor.create({
-        contract_address: collection.contract_address,
-        date: new Date(),
-        volume: fetchedCollection.volume,
-        floor: fetchedCollection.floor,
-        volume_24hr: fetchedCollection.volume_24hr,
-        sale_count: saleCount
-      });
+      if (fetchedCollection) {
+        await CollectionMonitor.create({
+          contract_address: collection.contract_address,
+          date: new Date(),
+          volume: fetchedCollection.volume,
+          floor: fetchedCollection.floor,
+          volume_24hr: fetchedCollection.volume_24hr,
+          sale_count: saleCount,
+        });
+      }
+
+      await delay(300);
     }
 
     console.log("done save collection monitors");
@@ -43,8 +49,8 @@ exports.deleteCollectionMonitors = async () => {
 
     await CollectionMonitor.deleteMany({
       date: {
-        $lt: date
-      }
+        $lt: date,
+      },
     });
 
     console.log(`done clean collection monitors`);
@@ -52,3 +58,5 @@ exports.deleteCollectionMonitors = async () => {
     console.error(`Failed to delete collection monitor with error ${error}`);
   }
 };
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

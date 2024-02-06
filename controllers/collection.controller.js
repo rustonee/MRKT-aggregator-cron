@@ -3,12 +3,7 @@ const { SigningCosmWasmClient } = require("@cosmjs/cosmwasm-stargate");
 const { StargateClient } = require("@cosmjs/stargate");
 const mongoose = require("mongoose");
 const Collection = require("../models/collection.model");
-const Nft = require("../models/nft.model");
-
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000;
-
-let floors_24hr = [];
+const CollectionMonitor = require("../models/collection-monitor.model");
 
 exports.fetchCollections = async () => {
   try {
@@ -43,6 +38,8 @@ exports.fetchCollections = async () => {
 
             newCollections.push(collectionDetails);
           }
+
+          await delay(300);
         }
       }
     }
@@ -61,31 +58,11 @@ exports.updateCollections = async () => {
 
     let collections = await Collection.find();
 
-    for (let idx = 0; idx < collections.length; idx++) {
-      const collection = collections[idx];
+    for (const collection of collections) {
       const address = collection.contract_address;
-
-      // Check if any user has the name 'Bob'
-      const hasFloor = floors_24hr.some((floor) => floor.address === address);
-      if (!hasFloor) {
-        floors_24hr.push({
-          address,
-          floors: new Array(50).fill(null),
-        });
-      }
 
       const collectionDetails = await fetchCollectionDetails(address);
       if (collectionDetails) {
-        const currFloor = collectionDetails.floor;
-
-        // Set floor_24hr
-        const floor_24hr = floors_24hr.find(
-          (floor_24hr) => floor_24hr.address === address
-        );
-
-        floor_24hr.floors.shift();
-        floor_24hr.floors.push(currFloor);
-
         if (collection.pfp === "") {
           collection.pfp = await getPfp(collectionDetails.slug, address);
         }
@@ -94,25 +71,33 @@ exports.updateCollections = async () => {
         collection.owners = collectionDetails.owners;
         collection.auction_count = collectionDetails.auction_count;
         collection.floor = collectionDetails.floor;
-        collection.floor_24hr = floor_24hr.floors[0]
-          ? floor_24hr.floors[0]
-          : collection.floor_24hr;
+        collection.floor_24hr = await getFloor24hr(address);
         collection.volume = collectionDetails.volume;
         collection.volume_24hr = collectionDetails.volume_24hr;
         collection.num_sales_24hr = collectionDetails.num_sales_24hr;
         collection.royalty = await getColloectionRoyaltyFromContract(address);
 
         newCollections.push(collection);
+
+        // collection monitor
+        await CollectionMonitor.create({
+          contract_address: collection.contract_address,
+          date: new Date(),
+          volume: collectionDetails.volume,
+          floor: collectionDetails.floor,
+          volume_24hr: collectionDetails.volume_24hr,
+          sale_count: collectionDetails.num_sales_24hr,
+        });
       }
 
       await delay(100);
-
-      break;
     }
 
     if (newCollections.length > 0) {
       await saveCollections(newCollections);
     }
+
+    console.log("done updating collections");
   } catch (err) {
     console.log("Some error occurred while saving the Collections.", err);
   }
@@ -179,7 +164,7 @@ const getColloectionRoyaltyFromContract = async (address) => {
 
     return value;
   } catch (err) {
-    console.log(err.message);
+    // console.log(err.message);
     return null;
   }
 };
@@ -244,36 +229,20 @@ const getPfp = async (name, address) => {
   return "";
 };
 
-const getFloor_24hr = async (address, defaultFloor) => {
+const getFloor24hr = async (address) => {
   try {
-    const activities = await fetchActivities(address);
-    if (activities) {
-      const currentTime = await getBlockTime();
-      const txActivities = activities.filter((activity) => {
-        const eventType = activity.event_type;
-        const txTime = activity.ts;
-        const oneHourAgo = new Date(
-          currentTime.getTime() - 60 * 60 * 24 * 1000
-        );
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-        if (eventType !== "list_buy_now" && new Date(txTime) >= oneHourAgo) {
-          return true;
-        }
+    const previousCollection = await CollectionMonitor.findOne({
+      date: { $lte: oneDayAgo },
+      contract_address: address,
+    }).sort({ date: -1 });
 
-        return false;
-      });
-
-      if (txActivities) {
-        const floor = Math.min(
-          ...txActivities.map((activity) => activity.price_value)
-        );
-
-        return Math.min(defaultFloor, floor);
-      }
-    }
-  } catch (error) {}
-
-  return defaultFloor;
+    return previousCollection.floor;
+  } catch (error) {
+    return null;
+  }
 };
 
 const checkUrl = async (url) => {
@@ -283,7 +252,7 @@ const checkUrl = async (url) => {
       return true;
     }
   } catch (error) {
-    console.log(`Error occurred while checking ${url} : `, error.message);
+    // console.log(`Error occurred while checking ${url} : `, error.message);
   }
 
   return false;
