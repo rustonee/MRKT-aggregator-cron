@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const { dbConfig } = require("./config/db.config");
 
 const cron = require("node-cron");
+const { CronExpression } = require("./config/cron-expression.enum");
 const collectionController = require("./controllers/collection.controller");
 const collectionMonitorController = require("./controllers/collection-monitor.controller");
 
@@ -15,56 +16,65 @@ mongoose
     console.error("Error connecting to MongoDB:", error);
   });
 
-let isFetchingJobRunning = false;
-let isUpdateJobRunning = false;
+let isFetchCollectionJobRunning = false;
+let isUpdateCollectionJobRunning = false;
 let isSaveCollectionMonitorsJobRunning = false;
 let isDeleteCollectionJobRunning = false;
 
 // Fetching job running every 30 minutes
-const fetchingJob = cron.schedule("*/30 * * * *", async function () {
-  if (isFetchingJobRunning) {
-    return;
-  }
+const fetchCollectionJob = cron.schedule(
+  CronExpression.EVERY_30_MINUTES,
+  async function () {
+    if (isFetchCollectionJobRunning) {
+      return;
+    }
 
-  isFetchingJobRunning = true;
-  try {
-    await collectionController.fetchCollections();
-  } finally {
-    isFetchingJobRunning = false;
+    isFetchCollectionJobRunning = true;
+    try {
+      await collectionController.fetchCollections();
+    } finally {
+      isFetchCollectionJobRunning = false;
+    }
   }
-});
+);
 
 // Updating job running every 5 minutes
-const updateJjob = cron.schedule("*/5 * * * *", async function () {
-  if (isUpdateJobRunning) {
-    return;
-  }
+const updateCollectionJob = cron.schedule(
+  CronExpression.EVERY_5_MINUTES,
+  async function () {
+    if (isUpdateCollectionJobRunning) {
+      return;
+    }
 
-  isUpdateJobRunning = true;
-  try {
-    await collectionController.updateCollections();
-  } finally {
-    isUpdateJobRunning = false;
+    isUpdateCollectionJobRunning = true;
+    try {
+      await collectionController.updateCollections();
+    } finally {
+      isUpdateCollectionJobRunning = false;
+    }
   }
-});
+);
 
 // Run task every 5 minutes
-// const saveColltionMonitorsJob = cron.schedule("*/5 * * * *", async function () {
-//   if (isSaveCollectionMonitorsJobRunning) {
-//     return;
-//   }
+// const saveColltionMonitorsJob = cron.schedule(
+//   CronExpression.EVERY_5_MINUTES,
+//   async function () {
+//     if (isSaveCollectionMonitorsJobRunning) {
+//       return;
+//     }
 
-//   isSaveCollectionMonitorsJobRunning = true;
-//   try {
-//     await collectionMonitorController.saveCollectionMonitors();
-//   } finally {
-//     isSaveCollectionMonitorsJobRunning = false;
+//     isSaveCollectionMonitorsJobRunning = true;
+//     try {
+//       await collectionMonitorController.saveCollectionMonitors();
+//     } finally {
+//       isSaveCollectionMonitorsJobRunning = false;
+//     }
 //   }
-// });
+// );
 
 // Run task every day
 const deleteCollectionMonitorJobs = cron.schedule(
-  "0 0 * * *",
+  CronExpression.EVERY_DAY_AT_MIDNIGHT,
   async function () {
     if (isDeleteCollectionJobRunning) {
       return;
@@ -81,12 +91,12 @@ const deleteCollectionMonitorJobs = cron.schedule(
 
 // Listen for the SIGINT event to stop the cron job when the app is terminated
 process.on("SIGINT", function () {
-  if (fetchingJob) {
-    fetchingJob.stop();
+  if (fetchCollectionJob) {
+    fetchCollectionJob.stop();
   }
 
-  if (updateJjob) {
-    updateJjob.stop();
+  if (updateCollectionJob) {
+    updateCollectionJob.stop();
   }
 
   // if (saveColltionMonitorsJob) {
