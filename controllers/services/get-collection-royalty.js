@@ -17,6 +17,7 @@ exports.getCollectionRoyalty = async (address) => {
 
     return value;
   } catch (error) {
+    console.log(`Error happened in getting roaylty of address: ${address}`)
     console.log(error);
     return null;
   }
