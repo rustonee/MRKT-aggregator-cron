@@ -1,14 +1,22 @@
-const axios = require("axios");
-const { SigningCosmWasmClient } = require("@cosmjs/cosmwasm-stargate");
-const { StargateClient } = require("@cosmjs/stargate");
 const mongoose = require("mongoose");
 const Collection = require("../models/collection.model");
 const CollectionMonitor = require("../models/collection-monitor.model");
 
+const { fetchMarketActivities } = require("./services/fetch-market-activities");
+const { fetchCollection } = require("./services/fetch-collection");
+const {
+  fetchCollectionDetails,
+} = require("./services/fetch-collection-details");
+const { getCollectionPfp } = require("./services/get-collection-pfp");
+const { getCollectionRoyalty } = require("./services/get-collection-royalty");
+const {
+  getCollectionFloor24hr,
+} = require("./services/get-collection-floor24hr");
+
 exports.fetchCollections = async () => {
   try {
     const newCollections = [];
-    const activities = await getMarketActivitiesFromContract();
+    const activities = await fetchMarketActivities();
 
     if (activities && activities.length > 0) {
       for (const activity of activities) {
@@ -32,7 +40,10 @@ exports.fetchCollections = async () => {
             collectionDetails.floor_24hr = collectionDetails.floor;
 
             if (collectionDetails.pfp === "") {
-              const pfp = await getPfp(collectionDetails.slug, address);
+              const pfp = await getCollectionPfp(
+                collectionDetails.slug,
+                address
+              );
               collectionDetails.pfp = pfp;
             }
 
@@ -47,6 +58,8 @@ exports.fetchCollections = async () => {
     if (newCollections.length > 0) {
       await saveCollections(newCollections);
     }
+
+    console.log("done fetching collections");
   } catch (err) {
     console.log("Some error occurred while saving the Collections.", err);
   }
@@ -64,18 +77,21 @@ exports.updateCollections = async () => {
       const collectionDetails = await fetchCollectionDetails(address);
       if (collectionDetails) {
         if (collection.pfp === "") {
-          collection.pfp = await getPfp(collectionDetails.slug, address);
+          collection.pfp = await getCollectionPfp(
+            collectionDetails.slug,
+            address
+          );
         }
 
         collection.supply = collectionDetails.supply;
         collection.owners = collectionDetails.owners;
         collection.auction_count = collectionDetails.auction_count;
         collection.floor = collectionDetails.floor;
-        collection.floor_24hr = await getFloor24hr(address);
+        collection.floor_24hr = await getCollectionFloor24hr(address);
         collection.volume = collectionDetails.volume;
         collection.volume_24hr = collectionDetails.volume_24hr;
         collection.num_sales_24hr = collectionDetails.num_sales_24hr;
-        collection.royalty = await getColloectionRoyaltyFromContract(address);
+        collection.royalty = await getCollectionRoyalty(address);
 
         newCollections.push(collection);
 
@@ -124,170 +140,6 @@ const saveCollections = async (collections) => {
   } catch (error) {
     console.error("Error saving collections: ", error);
   }
-};
-
-const getMarketActivitiesFromContract = async () => {
-  try {
-    const queryMsg = `{
-          "marketplace_activities": {
-            "limit": 20,
-            "start_after": 0
-          }
-      }`;
-
-    const activities = await queryContract(
-      process.env.SEI_CONTROLLER_ADDRESS,
-      queryMsg
-    );
-
-    return activities;
-  } catch (err) {
-    console.log(err);
-    return null;
-  }
-};
-
-const getColloectionRoyaltyFromContract = async (address) => {
-  try {
-    const queryMsg = `{
-        "royalties": {
-          "nft": {
-            "address": "${address}"
-          }
-        }
-      }`;
-
-    const { value } = await queryContract(
-      process.env.SEI_CONTROLLER_ADDRESS,
-      queryMsg
-    );
-
-    return value;
-  } catch (err) {
-    // console.log(err.message);
-    return null;
-  }
-};
-
-const fetchCollection = async (address) => {
-  try {
-    const api_url = process.env.API_URL;
-    const { data } = await axios.get(
-      `${api_url}/nfts/${address}?get_tokens=false`
-    );
-
-    return data;
-  } catch (err) {}
-
-  return null;
-};
-
-const fetchCollectionDetails = async (address) => {
-  try {
-    const api_url = process.env.BASE_API_URL;
-    const { data } = await axios.get(`${api_url}/v2/nfts/${address}/details`);
-
-    return data;
-  } catch (err) {}
-
-  return null;
-};
-
-const fetchActivities = async (address) => {
-  try {
-    const api_url = process.env.API_URL;
-    const { data } = await axios.get(
-      `${api_url}/marketplace/activities?chain_id=pacific-1&nft_address=${address}&page=1&page_size=300`
-    );
-    return data.activities;
-  } catch (err) {
-    console.log("error", err);
-  }
-
-  return null;
-};
-
-const getPfp = async (name, address) => {
-  const asset_url = process.env.ASSET_URL;
-  let pfpName = name.replaceAll("-", "").toLowerCase();
-
-  let ret = await checkUrl(`${asset_url}/pfp/${pfpName}.png`);
-  if (ret) {
-    return `${asset_url}/pfp/${pfpName}.png`;
-  }
-
-  ret = await checkUrl(`${asset_url}/pfp/${pfpName}.jpg`);
-  if (ret) {
-    return `${asset_url}/pfp/${pfpName}.jpg`;
-  }
-
-  ret = await checkUrl(`${asset_url}/collections/pfp/${address}_pfp.png`);
-  if (ret) {
-    return `${asset_url}/collections/pfp/${address}_pfp.png`;
-  }
-
-  return "";
-};
-
-const getFloor24hr = async (address) => {
-  try {
-    const oneDayAgo = new Date();
-    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
-    const previousCollection = await CollectionMonitor.findOne({
-      date: { $lte: oneDayAgo },
-      contract_address: address,
-    }).sort({ date: -1 });
-
-    return previousCollection.floor;
-  } catch (error) {
-    return null;
-  }
-};
-
-const checkUrl = async (url) => {
-  try {
-    const response = await axios.head(url);
-    if (response.status === 200) {
-      return true;
-    }
-  } catch (error) {
-    // console.log(`Error occurred while checking ${url} : `, error.message);
-  }
-
-  return false;
-};
-
-const queryContract = async (contractAddress, queryMsg, retryCount = 0) => {
-  try {
-    await delay(300);
-
-    const client = await SigningCosmWasmClient.connect(process.env.RPC_URL);
-    const queryResult = await client.queryContractSmart(
-      contractAddress,
-      JSON.parse(queryMsg)
-    );
-
-    return queryResult;
-  } catch (err) {
-    // if (retryCount < MAX_RETRIES) {
-    //   const delayTime = Math.pow(2, retryCount) * RETRY_DELAY;
-    //   await delay(delayTime);
-    //   return queryContract(contractAddress, queryMsg, retryCount + 1);
-    // } else {
-    //   return null;
-    // }
-    return null;
-  }
-};
-
-const getBlockTime = async () => {
-  const rpc_url = process.env.RPC_URL;
-  const client = await StargateClient.connect(rpc_url);
-  const currBlock = await client.getBlock();
-  const currBlockTime = currBlock.header.time;
-
-  return new Date(currBlockTime);
 };
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

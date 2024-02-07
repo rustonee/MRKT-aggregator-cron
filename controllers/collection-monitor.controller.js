@@ -1,10 +1,10 @@
 const CollectionMonitor = require("../models/collection-monitor.model");
 const Collection = require("../models/collection.model");
 
+const { fetchCollection } = require("./services/fetch-collection");
 const {
-  fetchCollection,
-  fetchCollectionSaleCount,
-} = require("./services/fetch-collection");
+  getCollectionSaleCount,
+} = require("./services/get-collection-sale-count");
 
 exports.saveCollectionMonitors = async () => {
   try {
@@ -17,7 +17,7 @@ exports.saveCollectionMonitors = async () => {
 
       await delay(300);
 
-      const saleCount = await fetchCollectionSaleCount(
+      const saleCount = await getCollectionSaleCount(
         collection.contract_address
       );
 
