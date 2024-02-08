@@ -17,6 +17,8 @@ const PAGE_SIZE = 100;
 
 exports.fetchCollections = async () => {
   try {
+    console.log("fetching collections ...");
+
     const lookbacks = [
       Lookback.LOOKBACK_ALL_TIME,
       Lookback.LOOKBACK_1_HOUR,
@@ -135,6 +137,24 @@ exports.fetchCollections = async () => {
 
 const saveCollections = async (collections) => {
   try {
+    const CollectionModel = mongoose.model("collections", Collection.schema);
+
+    const updateFields = {
+      floor_24hr: 0,
+      num_sales_latest: 0,
+      num_sales_1hr: 0,
+      num_sales_24hr: 0,
+      num_sales_7day: 0,
+      num_sales_30day: 0,
+      volume_latest: 0,
+      volume_1hr: 0,
+      volume_24hr: 0,
+      volume_7day: 0,
+      volume_30day: 0,
+    };
+
+    await CollectionModel.updateMany({}, { $set: updateFields });
+
     const bulkOperations = collections.map((collection) => {
       const { contract_address } = collection;
 
@@ -146,8 +166,6 @@ const saveCollections = async (collections) => {
         },
       };
     });
-
-    const CollectionModel = mongoose.model("collections", Collection.schema);
 
     // Perform the bulk write operation
     await CollectionModel.bulkWrite(bulkOperations);
