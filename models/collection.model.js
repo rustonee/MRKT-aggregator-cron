@@ -73,10 +73,37 @@ const collectionSchema = new mongoose.Schema({
   volume: {
     type: Number,
   },
+  volume_1hr: {
+    type: Number,
+  },
   volume_24hr: {
     type: Number,
   },
+  volume_7day: {
+    type: Number,
+  },
+  volume_30day: {
+    type: Number,
+  },
+  volume_latest: {
+    type: Number,
+  },
+  num_sales: {
+    type: Number,
+  },
+  num_sales_1hr: {
+    type: Number,
+  },
   num_sales_24hr: {
+    type: Number,
+  },
+  num_sales_7day: {
+    type: Number,
+  },
+  num_sales_30day: {
+    type: Number,
+  },
+  num_sales_latest: {
     type: Number,
   },
   royalty: {
