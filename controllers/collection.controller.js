@@ -2,118 +2,132 @@ const mongoose = require("mongoose");
 const Collection = require("../models/collection.model");
 const CollectionMonitor = require("../models/collection-monitor.model");
 
-const { fetchMarketActivities } = require("./services/fetch-market-activities");
-const { fetchCollection } = require("./services/fetch-collection");
+const { Lookback } = require("../config/lookback.enum");
 const {
-  fetchCollectionDetails,
-} = require("./services/fetch-collection-details");
-const { getCollectionPfp } = require("./services/get-collection-pfp");
-const { getCollectionRoyalty } = require("./services/get-collection-royalty");
+  fetchCollectionsStatus,
+} = require("./services/fetch-collections-status");
+const {
+  getCollectionVolume24hr,
+} = require("./services/get-collection-volume24hr");
 const {
   getCollectionFloor24hr,
 } = require("./services/get-collection-floor24hr");
 
+const PAGE_SIZE = 100;
+
 exports.fetchCollections = async () => {
   try {
-    const newCollections = [];
-    const activities = await fetchMarketActivities();
+    const lookbacks = [
+      Lookback.LOOKBACK_ALL_TIME,
+      Lookback.LOOKBACK_1_HOUR,
+      Lookback.LOOKBACK_24_HOUR,
+      Lookback.LOOKBACK_7_DAY,
+      Lookback.LOOKBACK_30_DAY,
+    ];
 
-    if (activities && activities.length > 0) {
-      for (const activity of activities) {
-        // Check if the new collection already exists
-        const collectionExists = newCollections.some(
-          (collection) => collection.contract_address === activity.nft.address
+    const collectionsPromises = lookbacks.map(async (lookback) => {
+      const collections = await fetchCollectionsStatus(lookback, PAGE_SIZE);
+      await delay(300);
+      return collections;
+    });
+
+    const [
+      currentlyCollections,
+      hourlyCollections,
+      dailyCollections,
+      weeklyCollections,
+      monthlyCollections,
+    ] = await Promise.all(collectionsPromises);
+
+    let allCollections = [];
+
+    [
+      currentlyCollections,
+      hourlyCollections,
+      dailyCollections,
+      weeklyCollections,
+      monthlyCollections,
+    ].forEach((collections) => {
+      collections.forEach((collection) => {
+        let exist = allCollections.some(
+          (newCollection) =>
+            newCollection.contract_address === collection.contract_address
         );
 
-        if (collectionExists) {
-          continue;
+        if (!exist) {
+          allCollections.push({
+            ...collection,
+            floor_24hr: 0,
+            num_sales_latest: 0,
+            num_sales_1hr: 0,
+            num_sales_24hr: 0,
+            num_sales_7day: 0,
+            num_sales_30day: 0,
+            volume_latest: 0,
+            volume_1hr: 0,
+            volume_24hr: 0,
+            volume_7day: 0,
+            volume_30day: 0,
+          });
         }
+      });
+    });
 
-        const collection = await Collection.findOne({
-          contract_address: activity.nft.address,
-        });
-
-        if (!collection) {
-          const collectionDetails = await fetchCollection(activity.nft.address);
-
-          if (collectionDetails) {
-            collectionDetails.floor_24hr = collectionDetails.floor;
-
-            if (collectionDetails.pfp === "") {
-              const pfp = await getCollectionPfp(
-                collectionDetails.slug,
-                address
-              );
-              collectionDetails.pfp = pfp;
-            }
-
-            newCollections.push(collectionDetails);
-          }
-
-          await delay(300);
+    const updateCollections = (newCollection, lookback) => {
+      allCollections.forEach((collection) => {
+        if (collection.contract_address === newCollection.contract_address) {
+          collection[`num_sales_${lookback}`] =
+            newCollection.num_sales_latest || 0;
+          collection[`volume_${lookback}`] = newCollection.volume_latest || 0;
         }
-      }
-    }
+      });
+    };
 
-    if (newCollections.length > 0) {
-      await saveCollections(newCollections);
-    }
+    currentlyCollections.forEach((newCollection) =>
+      updateCollections(newCollection, "latest")
+    );
+    hourlyCollections.forEach((newCollection) =>
+      updateCollections(newCollection, "1hr")
+    );
+    dailyCollections.forEach((newCollection) =>
+      updateCollections(newCollection, "24hr")
+    );
+    weeklyCollections.forEach((newCollection) =>
+      updateCollections(newCollection, "7day")
+    );
+    monthlyCollections.forEach((newCollection) =>
+      updateCollections(newCollection, "30day")
+    );
 
-    console.log("done fetching collections");
-  } catch (err) {
-    console.log("Some error occurred while saving the Collections.", err);
-  }
-};
-
-exports.updateCollections = async () => {
-  try {
-    let newCollections = [];
-
-    let collections = await Collection.find();
-
-    for (const collection of collections) {
-      const address = collection.contract_address;
-
-      const collectionDetails = await fetchCollectionDetails(address);
-      if (collectionDetails) {
-        if (collection.pfp === "") {
-          collection.pfp = await getCollectionPfp(
-            collectionDetails.slug,
-            address
+    if (allCollections.length > 0) {
+      for (let collection of allCollections) {
+        let volume_24hr = collection.volume_24hr;
+        if (volume_24hr === 0) {
+          volume_24hr = await getCollectionVolume24hr(
+            collection.contract_address
           );
+
+          collection.volume_24hr = volume_24hr;
         }
 
-        collection.supply = collectionDetails.supply;
-        collection.owners = collectionDetails.owners;
-        collection.auction_count = collectionDetails.auction_count;
-        collection.floor = collectionDetails.floor;
-        collection.floor_24hr = await getCollectionFloor24hr(address);
-        collection.volume = collectionDetails.volume;
-        collection.volume_24hr = collectionDetails.volume_24hr;
-        collection.num_sales_24hr = collectionDetails.num_sales_24hr;
-        collection.royalty = await getCollectionRoyalty(address);
+        collection.floor_24hr = await getCollectionFloor24hr(
+          collection.contract_address
+        );
 
-        newCollections.push(collection);
-
-        // collection monitor
         await CollectionMonitor.create({
           contract_address: collection.contract_address,
           date: new Date(),
-          volume: collectionDetails.volume,
-          floor: collectionDetails.floor,
-          volume_24hr: collectionDetails.volume_24hr,
-          sale_count: collectionDetails.num_sales_24hr,
+          volume: collection.volume,
+          floor: collection.floor,
+          volume_24hr: volume_24hr,
+          sale_count: collection.num_sales,
         });
       }
 
-      await delay(100);
+      await saveCollections(allCollections);
     }
 
-    if (newCollections.length > 0) {
-      await saveCollections(newCollections);
-    }
-
-    console.log("done updating collections");
+    console.log("done fetching collections");
   } catch (err) {
     console.log("Some error occurred while saving the Collections.", err);
   }
