@@ -21,7 +21,7 @@ let isDeleteCollectionJobRunning = false;
 
 // Fetching job running every 5 minutes
 const fetchCollectionJob = cron.schedule(
-  CronExpression.EVERY_MINUTE,
+  CronExpression.EVERY_5_MINUTES,
   async function () {
     if (isFetchCollectionJobRunning) {
       return;
