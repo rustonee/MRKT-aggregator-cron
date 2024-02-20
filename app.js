@@ -5,6 +5,7 @@ const cron = require("node-cron");
 const { CronExpression } = require("./config/cron-expression.enum");
 const collectionController = require("./controllers/collection.controller");
 const collectionMonitorController = require("./controllers/collection-monitor.controller");
+const subscribeEventController = require("./controllers/subscribe-pallet-event");
 
 // Connect to MongoDB
 mongoose
@@ -19,6 +20,14 @@ mongoose
 let isFetchCollectionJobRunning = false;
 let isDeleteCollectionJobRunning = false;
 
+const Transaction = require("./models/transaction.model");
+// Starting to subscribe events from pallet
+const subscribePalletEvent = async () => {
+  subscribeEventController.subscribeEvents();
+};
+
+subscribePalletEvent();
+/*
 // Fetching job running every 5 minutes
 const fetchCollectionJob = cron.schedule(
   CronExpression.EVERY_5_MINUTES,
@@ -52,16 +61,18 @@ const deleteCollectionMonitorJobs = cron.schedule(
     }
   }
 );
-
+*/
 // Listen for the SIGINT event to stop the cron job when the app is terminated
 process.on("SIGINT", function () {
-  if (fetchCollectionJob) {
-    fetchCollectionJob.stop();
-  }
+  subscribeEventController.unsubscribeEvents();
 
-  if (deleteCollectionMonitorJobs) {
-    deleteCollectionMonitorJobs.stop();
-  }
+  // if (fetchCollectionJob) {
+  //   fetchCollectionJob.stop();
+  // }
+
+  // if (deleteCollectionMonitorJobs) {
+  //   deleteCollectionMonitorJobs.stop();
+  // }
 
   process.exit();
 });

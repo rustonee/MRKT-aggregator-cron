@@ -14,7 +14,9 @@
     "dotenv": "^16.0.3",
     "mongoose": "^8.1.0",
     "node-cron": "^3.0.2",
-    "retry-as-promised": "^7.0.4"
+    "retry-as-promised": "^7.0.4",
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
