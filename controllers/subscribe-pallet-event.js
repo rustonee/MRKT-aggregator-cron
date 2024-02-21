@@ -234,7 +234,7 @@ const calcuPrice = (value) => {
       price = parseFloat(temp.match(/\d+/)[0]);
     }
 
-    return price / 100000;
+    return price / 1000000;
   } catch (error) {
     console.log(error);
     return "--";
