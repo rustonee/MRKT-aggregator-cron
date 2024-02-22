@@ -2,18 +2,7 @@ const mongoose = require("mongoose");
 
 // Define the schema for the collections
 const collectionSchema = new mongoose.Schema({
-  contract_address: {
-    type: String,
-    required: true,
-    index: true,
-  },
-  slug: { type: String, required: true, index: true },
-  chain_id: {
-    type: String,
-    required: true,
-    index: true,
-  },
-  creator: {
+  address: {
     type: String,
     required: true,
     index: true,
@@ -23,91 +12,37 @@ const collectionSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  slug: {
+    type: String,
+    required: true,
+    index: true,
+  },
   symbol: {
     type: String,
+    required: true,
+    index: true,
   },
   description: {
     type: String,
   },
-  pfp: {
+  image: {
     type: String,
   },
   banner: {
     type: String,
   },
-  socials: [],
-  send_listing_notification: {
-    type: Boolean,
-  },
-  calculate_rarities: {
-    type: Boolean,
-  },
-  start_after: {
+  creator: {
     type: String,
-  },
-  supply: {
-    type: Number,
-  },
-  version: {
-    type: String,
-  },
-  public: {
-    type: Boolean,
-  },
-  onboard_tx_id: {
-    type: Number,
-  },
-  creator_info: {},
-  auction_count: {
-    type: Number,
-  },
-  owners: {
-    type: Number,
-  },
-  floor: {
-    type: Number,
-  },
-  floor_24hr: {
-    type: Number,
-  },
-  volume: {
-    type: Number,
-  },
-  volume_1hr: {
-    type: Number,
-  },
-  volume_24hr: {
-    type: Number,
-  },
-  volume_7day: {
-    type: Number,
-  },
-  volume_30day: {
-    type: Number,
-  },
-  volume_latest: {
-    type: Number,
-  },
-  num_sales: {
-    type: Number,
-  },
-  num_sales_1hr: {
-    type: Number,
-  },
-  num_sales_24hr: {
-    type: Number,
-  },
-  num_sales_7day: {
-    type: Number,
-  },
-  num_sales_30day: {
-    type: Number,
-  },
-  num_sales_latest: {
-    type: Number,
   },
   royalty: {
     type: Number,
+  },
+  chain_id: {
+    type: String,
+  },
+  socials: [],
+  public: {
+    type: Boolean,
   },
 });
 
