@@ -49,7 +49,7 @@ exports.createNft = async (transaction, client) => {
         update
       );
     } else {
-      const nftTokenUri = await getNftTokenUri(
+      let nftTokenUri = await getNftTokenUri(
         transaction.nft_address,
         transaction.nft_token_id,
         client
