@@ -62,6 +62,7 @@ exports.createNft = async (transaction, client) => {
           "base64"
         ).toString();
         nftMetadata = JSON.parse(jsonData);
+        nftTokenUri = "";
       } else {
         nftMetadata = await getNftMetadata(nftTokenUri);
       }

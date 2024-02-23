@@ -22,8 +22,6 @@ const nftSchema = new mongoose.Schema({
   },
   token_url: {
     type: String,
-    required: true,
-    index: true,
   },
   image: {
     type: String,
