@@ -29,7 +29,7 @@ exports.createCollection = async (transaction, client) => {
         name: collectionDetails.name,
         slug: collectionDetails.slug,
         symbol: collectionDetails.symbol,
-        description: collectionDetails.num_sales_30day,
+        description: collectionDetails.description,
         image: collectionDetails.pfp,
         banner: collectionDetails.banner,
         creator: collectionDetails.creator,
