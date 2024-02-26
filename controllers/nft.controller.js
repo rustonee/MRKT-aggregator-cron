@@ -1,17 +1,11 @@
-const mongoose = require("mongoose");
-const Nft = require("../models/nft.model");
-const NftTrait = require("../models/nft.trait");
+const NftTrait = require("../models/nft.trait.model");
 const nftRepository = require("../repositories/nft.repository");
+const palletUserRepository = require("../repositories/pallet.user.repository");
 
+const { getUserInfo } = require("./services/contract/get-user-info");
 const { getNftInfo } = require("./services/contract/get-nft-info");
 const { getNftTokenUri } = require("./services/contract/get-nft-token_uri");
 const { getNftMetadata } = require("./services/http/get-nft-metadata");
-
-const EventType = {
-  SALE: "sale",
-  LIST: "list_nft",
-  WITHDRAW: "withdraw_listing",
-};
 
 const NFT_STATUS = {
   ACTIVE_AUCTION: "active_auction",
@@ -87,6 +81,8 @@ exports.createNft = async (transaction, client) => {
         transaction.nft_token_id,
         nftMetadata.attributes
       );
+
+      await createPalletUser(nftChainInfo.owner, client);
     }
   } catch (error) {
     console.log("createNft:", error);
@@ -106,5 +102,24 @@ const createNftTrait = async (nft_address, nft_token_id, traits) => {
     );
 
     await NftTrait.insertMany(traitsData);
+  }
+};
+
+const createPalletUser = async (address, client) => {
+  try {
+    const user = await palletUserRepository.findUserByAddress(address);
+    if (!user) {
+      const palletUser = await getUserInfo(address, client);
+
+      await palletUserRepository.createUser({
+        address,
+        bio: palletUser.bio,
+        email: palletUser.email,
+        pfp: palletUser.pfp?.key || null,
+        socials: palletUser.socials,
+      });
+    }
+  } catch (error) {
+    console.log("createPalletUser:", error.message);
   }
 };
