@@ -28,10 +28,23 @@ exports.createCollection = async (transaction, client) => {
     );
 
     if (collection) {
+      let num_sales = 0;
+      // if don't initialize, set from pallet
+      if (collection.num_sales === -1) {
+        num_sales = await getCollectionTotalSalesFromPallet(
+          transaction.nft_address
+        );
+        if (num_sales !== -1) {
+          num_sales = num_sales + 1;
+        }
+      }
+
+      // if event is sale, increase volume and num_sales
       if (transaction.event === EventType.SALE) {
         await collectionRepository.updateCollectionStatus(
           transaction.nft_address,
-          transaction.price
+          transaction.price,
+          num_sales === -1 ? 0 : num_sales + 1
         );
       }
     } else {
@@ -48,7 +61,9 @@ exports.createCollection = async (transaction, client) => {
         transaction.nft_address
       );
       const numSales =
-        initialSales + (transaction.event === EventType.SALE ? 1 : 0);
+        initialSales === -1
+          ? initialSales
+          : initialSales + (transaction.event === EventType.SALE ? 1 : 0);
 
       const result = await collectionRepository.createCollection({
         address: transaction.nft_address,

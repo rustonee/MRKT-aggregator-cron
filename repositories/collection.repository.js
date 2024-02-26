@@ -22,14 +22,14 @@ exports.findCollectionByAddress = async (address) => {
   }
 };
 
-exports.updateCollectionStatus = async (address, price) => {
+exports.updateCollectionStatus = async (address, price, sale_counts) => {
   try {
     const result = await Collection.updateOne(
       { address },
       {
         $inc: {
           volume: price,
-          num_sales: 1,
+          num_sales: sale_counts,
         },
       }
     );
