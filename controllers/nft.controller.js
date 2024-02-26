@@ -6,6 +6,7 @@ const { getUserInfo } = require("./services/contract/get-user-info");
 const { getNftInfo } = require("./services/contract/get-nft-info");
 const { getNftTokenUri } = require("./services/contract/get-nft-token_uri");
 const { getNftMetadata } = require("./services/http/get-nft-metadata");
+const { getNftFromPallet } = require("./services/http/get-nft-details");
 
 const NFT_STATUS = {
   ACTIVE_AUCTION: "active_auction",
@@ -61,6 +62,14 @@ exports.createNft = async (transaction, client) => {
         nftMetadata = await getNftMetadata(nftTokenUri);
       }
 
+      // get from pallet
+      if (!nftMetadata) {
+        nftMetadata = await getNftFromPallet(
+          transaction.nft_address,
+          transaction.nft_token_id
+        );
+      }
+
       await nftRepository.createNft({
         token_address: transaction.nft_address,
         token_id: transaction.nft_token_id,
@@ -96,7 +105,7 @@ const createNftTrait = async (nft_address, nft_token_id, traits) => {
         nft_address,
         nft_token_id,
         type: trait_type || type || "unknown",
-        value: value.toString(),
+        value: value?.toString() || "unknown",
         display_type,
       })
     );
