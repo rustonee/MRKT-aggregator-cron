@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Nft = require("../models/nft.model");
-const NftTrait = require("../models/nft.trait");
+const NftTrait = require("../models/nft.trait.model");
 
 exports.createNft = async (nftObject) => {
   try {

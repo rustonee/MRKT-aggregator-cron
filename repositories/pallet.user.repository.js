@@ -11,7 +11,7 @@ exports.createUser = async (userObject) => {
   }
 };
 
-exports.findUser = async (address) => {
+exports.findUserByAddress = async (address) => {
   try {
     const result = await PalletUser.findOne({ address });
     return result;

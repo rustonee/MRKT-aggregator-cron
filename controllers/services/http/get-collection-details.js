@@ -13,15 +13,15 @@ exports.getCollectionFromPallet = async (address) => {
       },
       {
         max: 6,
-        timeout: 6000,
-        backoffBase: 500,
+        timeout: 20000,
+        backoffBase: 1000,
         backoffExponent: 1.5,
       }
     );
 
     return data;
   } catch (error) {
-    console.log("getCollectionFromPallet", error.message);
+    console.log("getCollectionFromPallet:", error.message);
     return null;
   }
 };

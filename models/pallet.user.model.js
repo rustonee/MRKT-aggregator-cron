@@ -13,9 +13,7 @@ const palletUserSchema = new mongoose.Schema({
   email: {
     type: String,
   },
-  pfp: {
-    type: String,
-  },
+  pfp: {},
   socials: [],
 });
 

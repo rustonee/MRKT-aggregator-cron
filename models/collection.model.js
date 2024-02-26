@@ -44,6 +44,12 @@ const collectionSchema = new mongoose.Schema({
   public: {
     type: Boolean,
   },
+  volume: {
+    type: Number,
+  },
+  num_sales: {
+    type: Number,
+  },
 });
 
 // Create the Collection model

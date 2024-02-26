@@ -40,6 +40,8 @@ exports.processWasmEvents = async () => {
         await collectionController.createCollection(transaction, client);
         // create nft or update
         await nftController.createNft(transaction, client);
+        // create floor price or update
+        await collectionController.createCollectionFloor(transaction, client);
       }
 
       // delete processed wasm event

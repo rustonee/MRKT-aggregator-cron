@@ -11,7 +11,7 @@ exports.getNftMetadata = async (token_uri) => {
       },
       {
         max: 6,
-        timeout: 10000,
+        timeout: 20000,
         backoffBase: 1000,
         backoffExponent: 2,
       }
