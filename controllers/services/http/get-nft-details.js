@@ -28,7 +28,7 @@ exports.getNftFromPallet = async (token_address, token_id) => {
 
     return data;
   } catch (error) {
-    console.log("getCollectionFromPallet:", error.message);
+    console.log("getNftFromPallet:", error.message);
     return null;
   }
 };
