@@ -7,6 +7,6 @@ exports.createTransaction = async (tx) => {
     const result = await transaction.save();
     return result;
   } catch (error) {
-    console.log("createWasmEvent:", error.message);
+    console.log("createTransaction:", error.message);
   }
 };

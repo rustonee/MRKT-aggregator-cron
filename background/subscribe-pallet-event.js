@@ -1,7 +1,10 @@
 const WebSocket = require("ws");
 const { v4: uuidv4 } = require("uuid");
+const { SigningCosmWasmClient } = require("@cosmjs/cosmwasm-stargate");
 const wasmEventRepository = require("../repositories/wasm.event.repository");
-const Transaction = require("../models/transaction.model");
+const {
+  getChainDate,
+} = require("../controllers/services/contract/get-chain-date");
 
 const EventType = {
   SALE: "sale",
@@ -12,6 +15,7 @@ const EventType = {
 // Initialize websocket and wsQuery variables.
 let websocket;
 let wsQuery;
+let client;
 
 exports.subscribeEvents = async () => {
   connectToWebSocket();
@@ -20,7 +24,7 @@ exports.unsubscribeEvents = async () => {
   disconnectFromWebsocket();
 };
 
-const connectToWebSocket = () => {
+const connectToWebSocket = async () => {
   try {
     // Open a new WebSocket connection
     websocket = new WebSocket(process.env.PALLET_SUBSCRIBE_URL);
@@ -50,7 +54,7 @@ const connectToWebSocket = () => {
         const block = TxResult.height;
         const tx = TxResult.tx;
         const event = TxResult.result;
-        const ts = getBlockTime(block);
+        const ts = await getBlockTimestamp(block);
 
         await wasmEventRepository.createWasmEvent(block, tx, event, ts);
       }
@@ -98,11 +102,12 @@ const disconnectFromWebsocket = () => {
   wsQuery = null;
 };
 
-const getBlockTime = (block) => {
-  const tempBlock = 58958158;
-  const tempTimeStamp = 1708406881000;
+const getBlockTimestamp = async (block) => {
+  if (!client) {
+    client = await SigningCosmWasmClient.connect(process.env.RPC_URL);
+  }
 
-  const sub_ts = Math.ceil((block - tempBlock) / 2.3);
-  const ts = tempTimeStamp + sub_ts * 1000;
+  const chainDate = await getChainDate(parseInt(block, 10), client);
+  const ts = new Date(chainDate).getTime();
   return Math.ceil(ts / 1000);
 };
