@@ -1,11 +1,14 @@
 const { SigningCosmWasmClient } = require("@cosmjs/cosmwasm-stargate");
 const retry = require("retry-as-promised").default;
 
-exports.getCollectionRoyalty = async (nft_address) => {
+exports.getCollectionRoyalty = async (nft_address, client) => {
   try {
     const data = await retry(
       async () => {
-        const client = await SigningCosmWasmClient.connect(process.env.RPC_URL);
+        if (!client) {
+          client = await SigningCosmWasmClient.connect(process.env.RPC_URL);
+        }
+
         const queryResult = await client.queryContractSmart(
           process.env.PALLET_CONTRACT_ADDRESS,
           {
@@ -27,7 +30,7 @@ exports.getCollectionRoyalty = async (nft_address) => {
 
     return data;
   } catch (error) {
-    console.log("getCollectionRoyalty", error.message);
+    console.log("getCollectionRoyalty:", error.message);
     return null;
   }
 };

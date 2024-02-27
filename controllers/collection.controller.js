@@ -74,7 +74,7 @@ exports.createCollection = async (transaction, client) => {
         image: collectionDetails.pfp,
         banner: collectionDetails.banner,
         creator: collectionDetails.creator,
-        royalty: await getCollectionRoyalty(transaction.nft_address),
+        royalty: await getCollectionRoyalty(transaction.nft_address, client),
         chain_id: collectionDetails.chain_id,
         socials: collectionDetails.socials,
         public: true,
