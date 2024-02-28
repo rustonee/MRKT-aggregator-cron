@@ -100,10 +100,15 @@ exports.createCollection = async (transaction, client) => {
 };
 
 exports.createCollectionFloor = async (transaction, client) => {
-  const currentFloorPrice =
+  let currentFloorPrice =
     await floorPriceRepository.getCurrentFloorPriceByTokenAddress(
       transaction.nft_address
     );
+
+  if (!currentFloorPrice) {
+    currentFloorPrice = transaction.price;
+  }
+
   const lastFloorPrice =
     await floorPriceRepository.getLastFloorPriceByTokenAddress(
       transaction.nft_address
@@ -112,8 +117,12 @@ exports.createCollectionFloor = async (transaction, client) => {
   if (
     currentFloorPrice &&
     lastFloorPrice &&
-    currentFloorPrice < lastFloorPrice
+    currentFloorPrice === lastFloorPrice
   ) {
+    return;
+  }
+
+  if (currentFloorPrice) {
     await floorPriceRepository.createFloorPrice(
       transaction.nft_address,
       currentFloorPrice,
